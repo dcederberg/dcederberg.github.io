@@ -1,70 +1,57 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Pressure Monitor</title>
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-  <div class="container mt-4">
-    <h1>Pressure Monitor</h1>
-    <canvas id="pressureChart" width="400" height="200"></canvas>
-    <button class="btn btn-primary mt-3" onclick="saveData()">Save Data</button>
-  </div>
-
+  <meta charset="UTF-8">
+  <title>Arduino Pressure Monitor</title>
   <script>
-    let savedData = [];
-    let chartData = [];
     let ws;
-    const maxDataPoints = 100;
+    let pressureData = [];
 
-    // Initialize Chart.js
-    const ctx = document.getElementById('pressureChart').getContext('2d');
-    const pressureChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: Array.from({length: maxDataPoints}, (_, i) => i),
-        datasets: [{
-          label: 'Pressure (psi)',
-          data: chartData,
-          borderColor: 'rgba(75, 192, 192, 1)',
-          fill: false,
-        }]
-      }
-    });
+    // Connect to the WebSocket server
+    function connectWebSocket() {
+      ws = new WebSocket('ws://your_arduino_ip:80'); // Replace with your Arduino's IP and port
 
-    function initWebSocket() {
-      ws = new WebSocket('ws://your_arduino_ip:81');
-      
-      ws.onmessage = function(event) {
-        const pressure = parseFloat(event.data).toFixed(2);
-        chartData.push(pressure);
+      ws.addEventListener('open', () => {
+        console.log('WebSocket connection opened.');
+      });
+
+      ws.addEventListener('message', (event) => {
+        const pressure = parseFloat(event.data.split(": ")[1].split(" ")[0]);
+        document.getElementById('pressure').textContent = pressure + " psi";
         
-        // Limit data points, remove oldest if exceeding max
-        if (chartData.length > maxDataPoints) {
-          chartData.shift();
-        }
-        
-        pressureChart.update();
-      };
-      
-      ws.onclose = function() {
-        setTimeout(initWebSocket, 5000);  // Try to reconnect every 5s
-      };
+        const timestamp = new Date().toISOString();
+        pressureData.push({pressure, timestamp});
+      });
+
+      ws.addEventListener('close', () => {
+        console.log('WebSocket connection closed.');
+        setTimeout(connectWebSocket, 1000); // Attempt to reconnect every 1 second
+      });
     }
 
+    // Save data to JSON file
     function saveData() {
-      const timestamp = new Date().toISOString();
-      const blob = new Blob([JSON.stringify({timestamp, data: chartData}, null, 2)], {type: 'application/json'});
+      const blob = new Blob([JSON.stringify(pressureData)], {type: 'application/json'});
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
+      a.style.display = 'none';
       a.href = url;
       a.download = 'pressure_data.json';
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      window.URL.revokeObjectURL(url);
     }
 
-    initWebSocket();
+    // Initialize WebSocket connection
+    window.addEventListener('load', () => {
+      connectWebSocket();
+    });
   </script>
+</head>
+<body>
+  <h1>Arduino Pressure Monitor</h1>
+  <p>Current Pressure: <span id="pressure">Loading...</span></p>
+  <button onclick="saveData()">Save Data</button>
 </body>
 </html>
+
