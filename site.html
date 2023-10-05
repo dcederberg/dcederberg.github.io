@@ -3,55 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <title>Arduino Pressure Monitor</title>
-  <script>
-    let ws;
-    let pressureData = [];
-
-    // Connect to the WebSocket server
-    function connectWebSocket() {
-      ws = new WebSocket('ws://your_arduino_ip:80'); // Replace with your Arduino's IP and port
-
-      ws.addEventListener('open', () => {
-        console.log('WebSocket connection opened.');
-      });
-
-      ws.addEventListener('message', (event) => {
-        const pressure = parseFloat(event.data.split(": ")[1].split(" ")[0]);
-        document.getElementById('pressure').textContent = pressure + " psi";
-        
-        const timestamp = new Date().toISOString();
-        pressureData.push({pressure, timestamp});
-      });
-
-      ws.addEventListener('close', () => {
-        console.log('WebSocket connection closed.');
-        setTimeout(connectWebSocket, 1000); // Attempt to reconnect every 1 second
-      });
-    }
-
-    // Save data to JSON file
-    function saveData() {
-      const blob = new Blob([JSON.stringify(pressureData)], {type: 'application/json'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = 'pressure_data.json';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-    }
-
-    // Initialize WebSocket connection
-    window.addEventListener('load', () => {
-      connectWebSocket();
-    });
-  </script>
+  <script src="script.js"></script>
 </head>
 <body>
   <h1>Arduino Pressure Monitor</h1>
-  <p>Current Pressure: <span id="pressure">Loading...</span></p>
-  <button onclick="saveData()">Save Data</button>
+  <div id="pressure-container">
+    <h2>Current Pressure: <span id="pressure-value">0</span> psi</h2>
+  </div>
+  <button id="capture-button">Start Capture</button>
+  <script>
+    // Your JavaScript will go here
+  </script>
 </body>
 </html>
 
